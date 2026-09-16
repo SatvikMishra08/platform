@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-The Dialogue Branch Platform is a monorepo for authoring, executing, and serving branching dialogue scripts (`.dlb` files). The platform consists of four components that work together:
+The Dialogue Branch Platform is a monorepo for authoring, executing, and serving branching dialogue scripts (`.dlb` files). The platform consists of five components that work together:
 
 1. **`packages/core`** — Core Java library (`com.dialoguebranch`) for parsing and executing `.dlb` scripts. Published to Maven Central as `com.dialoguebranch:dlb-core-java`.
 2. **`apps/api`** — Spring Boot web service that wraps the core library with a REST API. Deployed as a WAR on Tomcat. API base path: `/dlb-web-service/v1`.
 3. **`apps/bff`** — Spring Boot Backend-for-Frontend: performs the OAuth2 login against Keycloak on behalf of `apps/studio` and proxies its API calls to `apps/api`, so the browser never holds an access token (see [BFF service](#bff-service-apps-bff) below). Deployed as an executable JAR, not a WAR.
 4. **`apps/studio`** — Vue 3 / Vite / Tailwind CSS front-end ("Dialogue Branch Studio") that consumes the REST API via the BFF.
+5. **`packages/client-js`** — Playback-only JavaScript client (`@dialoguebranch/client-js`, no authoring) for a Dialogue Branch Web Service, published as ESM with no build step. `apps/studio` consumes it as a `file:` dependency; not yet published to npm (see [client-js package](#client-js-package-packagesclient-js) below).
 
 The version for the entire monorepo is declared once in `global.json` at the root. Both Gradle builds and the web `package.json` read from this file.
 
@@ -79,6 +80,17 @@ npm run dev      # dev server with hot-reload (proxies /api, /oauth2, /login, /l
 npm run build    # production build
 npm run preview  # preview production build locally
 ```
+
+### client-js package (`packages/client-js/`)
+
+```bash
+cd packages/client-js
+npm install
+npm test          # run tests once
+npm run test:watch
+```
+
+No build step — `apps/studio`'s `npm install` picks up its `file:../../packages/client-js` dependency automatically, so there's nothing separate to build or link.
 
 ## Local Development Stack
 
@@ -173,9 +185,10 @@ See [documentation/vitepress/docs/web-services/authentication.md](documentation/
 Dialogue Branch Studio is a single-page Vue 3 app. Key structure:
 
 - **`src/config.js`** — `baseUrl` defaults to the relative `/api/v1`; the app talks only to the BFF (same origin), which proxies `/api/**` to the actual Web Service — change here only to point at a different BFF/API base for non-standard environments
-- **`src/state.js`** — Singleton `StudioClientState` (extends `ClientState` from `dlb-lib`); loaded from cookie on startup; exported as the shared reactive state
-- **`src/dlb-lib/DialogueBranchClient.js`** — Thin fetch-based API client; wraps all REST calls; returns parsed model objects
-- **`src/StudioClientState.js`** — App-specific state; extends the reusable, product-neutral `ClientState` from `dlb-lib`
+- **`src/state.js`** — Singleton `StudioClientState` (extends `ClientState` from `@dialoguebranch/client-js`); loaded from cookie on startup; exported as the shared reactive state
+- **`src/composables/client.js`** — Constructs the shared `DialogueBranchClient` (from `@dialoguebranch/client-js`), injecting Studio's transport hooks (CSRF header, Debug Console logging, login-redirect-on-401 — see [client-js package](#client-js-package-packagesclient-js) below)
+- **`src/StudioClientState.js`** — App-specific state; extends the reusable, product-neutral `ClientState` from `@dialoguebranch/client-js`
+- **`src/authoring/`** — `.dlb` authoring helpers used only by Studio's node-graph editor, not part of the playback client: `DlbHeaderTags.js`, `DlbReplyLinks.js` (see below), plus `DocumentFunctions.js` (cookie/CSRF helpers) and `TextAreaLogger.js`
 - **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`. There is no login page: on boot, `src/main.js` calls `fetchWhoAmI()` (`src/auth.js`) against the BFF's `GET /whoami`; a `401` (no session) triggers `redirectToLogin()`, a real top-level navigation to the BFF's `/oauth2/authorization/keycloak`, which redirects on to Keycloak's hosted login page — the app itself never mounts until that round-trip completes.
 - **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree, with New/Draft/Deleted badges and publish-enablement driven by draft status), `DialogueTreeNode.vue`, `DialogueWorkspace.vue`, `DialogueEditor.vue`, `NodeEditPanel.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue`
 - **`src/components/widgets/`** — Reusable UI primitives (buttons, panels, inputs, `ModeSelector.vue`)
@@ -192,6 +205,18 @@ The app uses Tailwind CSS v4 (Vite plugin) and Font Awesome for icons. `__APP_VE
 - **`node-colors.js`** — Maps a node's `colorId` tag to an accent color, shared between the graph nodes and the color picker so they never drift apart visually.
 
 Edits in this mode operate on the draft copy of the dialogue (see [Draft dialogues and publishing](#draft-dialogues-and-publishing) in the API architecture section above); leaving edit mode back to balloon/text reconciles any in-flight test session against the now-stale draft content.
+
+### client-js package (`packages/client-js`)
+
+`@dialoguebranch/client-js` is a playback-only JavaScript client for a Dialogue Branch Web Service — no authoring, no Vue dependency, no `document`/browser assumptions baked in, so it can run in a browser, Node, or (in principle) React Native. Published as ESM with no build step; `exports` in `package.json` points straight at source. Extracted from what used to be Studio's in-app `src/dlb-lib/` (see [#88](https://github.com/dialoguebranch/platform/issues/88)).
+
+- **`DialogueBranchClient.js`** — The REST client. All transport is injected via the constructor's options object (`{ baseUrl, fetch?, credentials?, onRequest?, onApiCall?, onUnauthorized? }`) rather than imported, so the package has no upward dependency on any particular app. `onRequest(url, init)` is the generic seam for attaching auth on every request (Studio uses it for its CSRF header, restricted to non-GET/HEAD at the call site since that restriction is CSRF-specific, not generic); `onApiCall` is a debug-log hook (gates a body-read/`Response`-reconstruction step that's skipped entirely when unset); `onUnauthorized` handles a `401` — called and left pending forever if supplied (Studio uses it to trigger a real login-redirect navigation), or the promise rejects normally if not.
+- **`ClientState.js`** — Reusable, product-neutral session state; `apps/studio`'s `StudioClientState.js` extends it.
+- **`model/`** — Wire-protocol types (`Reply`, `BasicReply`, `AutoForwardReply`, `DialogueStep`, `Statement`, `Segment`, `Action`, `OngoingDialogue`, `ServerInfo`, `User`, `Variable`), each with a `fromJSON` parser.
+- **`protocol.js`** — Side-effect-free re-export of `model/`'s types and parsers with no transport code, at the `@dialoguebranch/client-js/protocol` subpath — lets a wrapping backend and its own front end share wire types without pulling in `DialogueBranchClient`/`fetch` at all.
+- **`util/AbstractLogger.js`, `util/ConsoleLogger.js`** — Pluggable logging, no Studio-specific `TextAreaLogger.js` (that one stays in `apps/studio/src/authoring/`, alongside the `.dlb` authoring helpers — not part of this package's playback-only scope).
+
+`apps/studio` consumes it as a `file:../../packages/client-js` dependency (no npm workspaces). Currently `"private": true` — not yet published to npm; flip that when it actually is (tracked as a deliberate follow-up on #88, not scheduled).
 
 ## Versioning
 

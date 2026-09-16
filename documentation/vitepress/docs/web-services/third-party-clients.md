@@ -2,6 +2,14 @@
 
 Your own client application can connect to the Dialogue Branch Web Service directly, without going through the [BFF](/web-services/bff-service) used by [Dialogue Branch Studio](/web-services/studio). This page walks through a typical workflow for such a "direct API client".
 
+## JavaScript: `@dialoguebranch/client-js`
+
+If your client is JavaScript-based, you may not need to hand-roll the workflow below at all. `@dialoguebranch/client-js` is a playback-only client (no authoring) for exactly this scenario — running dialogues against a Web Service from outside Dialogue Branch Studio — with no framework dependency, so it runs in a browser, Node, or (in principle) React Native. It lives at `packages/client-js` in the platform monorepo, is published as plain ESM with no build step required, and its `DialogueBranchClient` constructor takes the transport (a `fetch` implementation, credentials mode, and hooks for attaching auth, logging calls, and handling a `401`) as options rather than assuming a particular environment.
+
+::: info Not yet on npm
+`@dialoguebranch/client-js` isn't published to the npm registry yet — Dialogue Branch Studio itself currently consumes it as a local dependency within the monorepo. Until it's published, treat its source as a reference implementation of the workflow described below, or vendor it directly. Follow [issue #88](https://github.com/dialoguebranch/platform/issues/88) for publishing status.
+:::
+
 ## Authenticating
 
 Authenticate the user directly with Keycloak, using the Authorization Code + PKCE flow, to obtain an access token, then include it in the header (`name`: `Authorization`, `value`: `Bearer <your-access-token>`) for all subsequent calls to the Web Service. See [Direct API Clients](/web-services/authentication#direct-api-clients) for the full explanation.
