@@ -1,11 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '../../composables/client.js';
+import { useAuthoringClient } from '../../composables/client.js';
 
 const emit = defineEmits(['close']);
 
-const client = useClient();
+const client = useAuthoringClient();
 
 const loading = ref(true);
 const error = ref('');

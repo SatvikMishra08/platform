@@ -1,7 +1,7 @@
 <script setup>
 import { computed, inject, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '@/composables/client.js';
+import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
@@ -15,7 +15,7 @@ const props = defineProps({
 const emit = defineEmits(['dialogueSaved']);
 
 const state = inject('state');
-const client = useClient();
+const client = useAuthoringClient();
 
 const loading = ref(false);
 const loadError = ref(null); // { message, errors } — the dialogue's draft content doesn't parse

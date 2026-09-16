@@ -6,7 +6,7 @@ export default { inheritAttrs: false };
 import { computed, inject, onMounted, ref, useAttrs } from 'vue';
 const attrs = useAttrs();
 const state = inject('state');
-import { useClient } from '@/composables/client.js';
+import { useClient, useAuthoringClient } from '@/composables/client.js';
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
@@ -56,6 +56,7 @@ const emit = defineEmits([
 ]);
 
 const client = useClient();
+const authoringClient = useAuthoringClient();
 
 // Two distinct things, one panel, one at a time (see `mode`):
 //   'values'  — this logged-in user's stored variable values for the current project; mutable
@@ -138,7 +139,7 @@ const loadVariables = () => {
 const loadProjectVariables = () => {
     const slug = state.value.selectedProject?.slug;
     if (!slug) return;
-    client.listProjectVariables(slug)
+    authoringClient.listProjectVariables(slug)
         .then((vars) => { projectVariables.value = vars; })
         .catch(() => { projectVariables.value = []; });
 };
@@ -149,7 +150,7 @@ const loadProjectVariables = () => {
 const loadSupportedVariables = () => {
     const slug = state.value.selectedProject?.slug;
     if (!slug) return;
-    client.listSupportedVariables(slug)
+    authoringClient.listSupportedVariables(slug)
         .then((vars) => { supportedVariables.value = vars; })
         .catch(() => { supportedVariables.value = []; });
 };

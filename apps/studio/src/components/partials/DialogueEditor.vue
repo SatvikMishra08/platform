@@ -3,7 +3,7 @@ import { ref, inject, watch, computed, useTemplateRef } from 'vue';
 import { VueFlow, MarkerType, BaseEdge, getStraightPath, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '@/composables/client.js';
+import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { parseHeaderTags, serializeHeaderTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
@@ -31,7 +31,7 @@ const props = defineProps({
 const emit = defineEmits(['nodeChanged', 'nodeDeleted', 'dialogueSaved']);
 
 const state = inject('state');
-const client = useClient();
+const client = useAuthoringClient();
 
 // Simple grid fallback for nodes that don't have a `position` tag yet (e.g. dialogues authored
 // before this editor existed) — just enough so nothing renders stacked on top of itself.

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, inject, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '@/composables/client.js';
+import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { DLB_APP_MODE_DRAFT } from '@/StudioClientState.js';
@@ -25,7 +25,7 @@ const props = defineProps({
 const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged']);
 
 const state = inject('state');
-const client = useClient();
+const client = useAuthoringClient();
 
 const isDraftMode = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
 

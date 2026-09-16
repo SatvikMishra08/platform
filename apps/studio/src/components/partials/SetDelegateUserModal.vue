@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '@/composables/client.js';
+import { useAuthoringClient } from '@/composables/client.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 
@@ -13,7 +13,7 @@ defineProps({
 // 'apply' carries { subject, label }: subject is sent to the API, label is shown in the UI.
 const emit = defineEmits(['close', 'apply', 'clear']);
 
-const client = useClient();
+const client = useAuthoringClient();
 
 const mode = ref('search'); // 'search' | 'raw'
 

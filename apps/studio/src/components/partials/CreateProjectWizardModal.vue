@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '../../composables/client.js';
+import { useAuthoringClient } from '../../composables/client.js';
 import { logEvent } from '../../composables/debug-log.js';
 import { describeError } from '../../composables/error-message.js';
 import TextInput from '../widgets/TextInput.vue';
@@ -9,7 +9,7 @@ import PushButton from '../widgets/PushButton.vue';
 
 const emit = defineEmits(['close', 'created']);
 
-const client = useClient();
+const client = useAuthoringClient();
 
 const TOTAL_STEPS = 3;
 const currentStep = ref(1);

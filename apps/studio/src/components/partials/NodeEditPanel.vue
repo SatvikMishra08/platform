@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, inject, nextTick, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '@/composables/client.js';
+import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError } from '@/composables/error-toast.js';
 import { parseHeaderTags, serializeHeaderTags } from '@/authoring/DlbHeaderTags.js';
@@ -20,7 +20,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved', 'deleted', 'renamed']);
 
 const state = inject('state');
-const client = useClient();
+const client = useAuthoringClient();
 
 const title = ref('');
 const speaker = ref('');
