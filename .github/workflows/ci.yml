@@ -57,6 +57,23 @@ jobs:
           path: ${{ matrix.dir }}/build/reports/tests/
           if-no-files-found: ignore
 
+  client-js:
+    name: client-js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: packages/client-js/package-lock.json
+
+      - working-directory: packages/client-js
+        run: |
+          npm ci
+          npm test
+
   studio:
     name: studio
     runs-on: ubuntu-latest
@@ -97,14 +114,16 @@ jobs:
   all-green:
     name: all-green
     runs-on: ubuntu-latest
-    needs: [jvm, studio, vitepress]
+    needs: [jvm, client-js, studio, vitepress]
     if: always()
     steps:
       - name: Verify all jobs succeeded
         run: |
           echo "jvm:       ${{ needs.jvm.result }}"
+          echo "client-js: ${{ needs.client-js.result }}"
           echo "studio:    ${{ needs.studio.result }}"
           echo "vitepress: ${{ needs.vitepress.result }}"
           [ "${{ needs.jvm.result }}" = "success" ] \
+            && [ "${{ needs.client-js.result }}" = "success" ] \
             && [ "${{ needs.studio.result }}" = "success" ] \
             && [ "${{ needs.vitepress.result }}" = "success" ]
