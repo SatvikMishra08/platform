@@ -94,7 +94,7 @@ describe('Statement segment helpers', () => {
 });
 
 describe('DialogueBranchClient.createDialogueStepObject', () => {
-    const client = new DialogueBranchClient('/api/v1');
+    const client = new DialogueBranchClient({ baseUrl: '/api/v1' });
 
     const step = client.createDialogueStepObject({
         dialogue: 'inputs',

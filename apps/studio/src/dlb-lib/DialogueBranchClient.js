@@ -33,14 +33,24 @@ import { Action } from "./model/Action";
 import { Segment } from "./model/Segment";
 import { Statement } from "./model/Statement";
 import { Variable } from "./model/Variable";
-import { logApiCall } from "../composables/debug-log.js";
-import { DocumentFunctions } from "./util/DocumentFunctions.js";
-import { redirectToLogin } from "../auth.js";
 
 export class DialogueBranchClient {
 
-    constructor(baseUrl) {
+    // Transport is injected, not imported, so this client has no upward dependency on Studio
+    // (or on Vue/`document`) and can run in any JS runtime. `onRequest` is the generic seam for
+    // attaching auth — called on every request, not just state-changing ones, since a
+    // token-based consumer needs it on GETs too; Studio's own `onRequest` restricts its CSRF
+    // header to non-GET/HEAD itself, since that restriction is CSRF-specific, not generic.
+    // The default binds globalThis.fetch to globalThis — native fetch throws "Illegal
+    // invocation" when called as a plain property (`this._fetchImpl(...)`) instead of a method
+    // on window/globalThis, since it checks its receiver's internal type.
+    constructor({ baseUrl, fetch = globalThis.fetch.bind(globalThis), credentials = 'same-origin', onRequest, onApiCall, onUnauthorized } = {}) {
         this._baseUrl = baseUrl;
+        this._fetchImpl = fetch;
+        this._credentials = credentials;
+        this._onRequest = onRequest;
+        this._onApiCall = onApiCall;
+        this._onUnauthorized = onUnauthorized;
         this._timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         this.delegateUser = null;
     }
@@ -143,14 +153,13 @@ export class DialogueBranchClient {
     async exportProject(projectSlug) {
         const url = this._baseUrl + "/project/export-project?projectSlug=" + encodeURIComponent(projectSlug);
 
-        const response = await fetch(url, {
+        const response = await this._fetchImpl(url, {
             method: "GET",
-            credentials: "include",
+            credentials: this._credentials,
         });
 
         if (response.status === 401) {
-            redirectToLogin();
-            return new Promise(() => {}); // navigation is in flight; never resolve
+            return this._unauthorizedResult();
         }
 
         if (!response.ok) {
@@ -739,31 +748,32 @@ export class DialogueBranchClient {
         return dialogueStep;
     }
 
-    // Attaches the session cookie (credentials: 'include') to every call, and — for state-changing
-    // methods, which are the ones Spring Security's CSRF filter actually checks — the XSRF-TOKEN
-    // cookie's value as the X-XSRF-TOKEN header. There is no access token to attach or refresh
-    // here at all: the BFF holds it server-side and refreshes it transparently.
+    // Attaches credentials to every call via the injected `_credentials` mode, and gives
+    // `_onRequest` a chance to mutate headers before the call goes out (e.g. Studio attaches its
+    // CSRF header there — that restriction to state-changing methods is CSRF-specific, so it
+    // lives at the call site, not here; `_onRequest` itself fires on every request).
     async _fetch(url, options, logRequestBody = null) {
         const method = (options?.method || 'GET').toUpperCase();
         const path = url.startsWith(this._baseUrl) ? url.slice(this._baseUrl.length) : url;
 
-        const fetchOptions = { ...options, credentials: 'include' };
-        if (!['GET', 'HEAD'].includes(method)) {
-            const csrfToken = DocumentFunctions.getCookie('XSRF-TOKEN');
-            if (csrfToken) {
-                fetchOptions.headers = { ...options?.headers, 'X-XSRF-TOKEN': csrfToken };
-            }
-        }
+        const fetchOptions = { ...options, credentials: this._credentials };
+        this._onRequest?.(url, fetchOptions);
 
         let response;
         try {
-            response = await fetch(url, fetchOptions);
+            response = await this._fetchImpl(url, fetchOptions);
         } catch (networkError) {
-            logApiCall(method, path, 0, null, logRequestBody);
+            this._onApiCall?.(method, path, 0, null, logRequestBody);
             throw networkError;
         }
+        if (!this._onApiCall) {
+            return response;
+        }
+        // Debug-log capture reads the body as text and reconstructs a new Response from that
+        // string — skipped entirely above when nothing is listening, since that reconstruction
+        // would corrupt binary content and isn't free.
         const text = await response.text().catch(() => null);
-        logApiCall(method, path, response.status, text, logRequestBody);
+        this._onApiCall(method, path, response.status, text, logRequestBody);
         const nullBodyStatus = [204, 205, 304].includes(response.status);
         return new Response(nullBodyStatus ? null : text, {
             status: response.status,
@@ -772,14 +782,30 @@ export class DialogueBranchClient {
         });
     }
 
+    // Shared 401 handling for both _handleResponse and exportProject (which can't route through
+    // _handleResponse — it needs the raw blob body, not JSON/text). With an `onUnauthorized` hook
+    // (Studio's real-navigation login redirect), returns a promise that never resolves so
+    // callers' .then()/.catch() don't fire while that navigation is in flight. Without one, rejects
+    // with a normal error instead of hanging forever — a consumer with no hook still needs to
+    // find out the call failed.
+    _unauthorizedResult() {
+        if (this._onUnauthorized) {
+            this._onUnauthorized();
+            return new Promise(() => {});
+        }
+        return Promise.reject({
+            status: 401,
+            statusText: 'Unauthorized',
+            code: null,
+            message: 'Unauthorized',
+            fieldErrors: [],
+            errors: null,
+        });
+    }
+
     _handleResponse(response) {
         if (response.status === 401) {
-            // No session (or one the BFF could not refresh) — send the browser to log in via a
-            // real navigation, matching the BFF's documented client pattern. Returns a promise
-            // that never resolves so callers' .then()/.catch() don't fire while that navigation
-            // is in flight.
-            redirectToLogin();
-            return new Promise(() => {});
+            return this._unauthorizedResult();
         }
         if (response.ok) {
             const contentType = response.headers.get('content-type');
