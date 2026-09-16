@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import InteractiveReply from './InteractiveReply.vue';
-import { BasicReply } from '@/dlb-lib/model/BasicReply';
-import { Statement } from '@/dlb-lib/model/Statement';
-import { Segment } from '@/dlb-lib/model/Segment';
+import { BasicReply } from '@dialoguebranch/client-js/model/BasicReply';
+import { Statement } from '@dialoguebranch/client-js/model/Statement';
+import { Segment } from '@dialoguebranch/client-js/model/Segment';
 
 function inputReply() {
     const reply = BasicReply.emptyInstance();

@@ -30,10 +30,10 @@ import { describe, it, expect } from 'vitest';
 import { reactive, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
-import { DialogueStep } from '@/dlb-lib/model/DialogueStep';
-import { Statement } from '@/dlb-lib/model/Statement';
-import { Segment } from '@/dlb-lib/model/Segment';
-import { BasicReply } from '@/dlb-lib/model/BasicReply';
+import { DialogueStep } from '@dialoguebranch/client-js/model/DialogueStep';
+import { Statement } from '@dialoguebranch/client-js/model/Statement';
+import { Segment } from '@dialoguebranch/client-js/model/Segment';
+import { BasicReply } from '@dialoguebranch/client-js/model/BasicReply';
 
 function step(textLength) {
     return new DialogueStep(

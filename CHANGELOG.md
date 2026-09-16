@@ -50,6 +50,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- New `packages/client-js`: a playback-only JavaScript client for a Dialogue Branch Web Service,
+  `@dialoguebranch/client-js` ([#88](https://github.com/dialoguebranch/platform/issues/88)),
+  extracted from what used to be Dialogue Branch Studio's in-app client library. No authoring
+  support — just running dialogues against a Web Service — and no framework dependency, so it can
+  be used outside Studio (e.g. a future public demonstrator front end). Published as plain ESM
+  with no build step. Not yet published to npm; Dialogue Branch Studio consumes it locally for
+  now via a `file:` dependency.
 - Web Service: an External Variable Service (EVS) may now report which variables it supports for
   a project, via an optional `GET /v{version}/variables/supported?projectSlug=<slug>` end-point on
   the EVS ([#185](https://github.com/dialoguebranch/platform/issues/185)). The Web Service exposes

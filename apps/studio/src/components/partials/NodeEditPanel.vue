@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError } from '@/composables/error-toast.js';
-import { parseHeaderTags, serializeHeaderTags } from '@/dlb-lib/util/DlbHeaderTags.js';
+import { parseHeaderTags, serializeHeaderTags } from '@/authoring/DlbHeaderTags.js';
 import { COLOR_PALETTE, colorForId } from '@/composables/node-colors.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
