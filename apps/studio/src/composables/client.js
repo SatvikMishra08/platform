@@ -1,8 +1,8 @@
 import { inject } from 'vue';
-import { DialogueBranchClient } from '../dlb-lib/DialogueBranchClient.js';
+import { DialogueBranchClient } from '@dialoguebranch/client-js';
 import { logApiCall } from './debug-log.js';
 import { redirectToLogin } from '../auth.js';
-import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
+import { DocumentFunctions } from '../authoring/DocumentFunctions.js';
 
 let _client = null;
 

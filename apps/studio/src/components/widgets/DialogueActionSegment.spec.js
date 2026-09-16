@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import DialogueActionSegment from './DialogueActionSegment.vue';
-import { Action } from '@/dlb-lib/model/Action';
+import { Action } from '@dialoguebranch/client-js/model/Action';
 
 const mountAction = (json) =>
     mount(DialogueActionSegment, { props: { action: Action.fromJSON(json) } });

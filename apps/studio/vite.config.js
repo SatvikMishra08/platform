@@ -25,12 +25,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Keeps dlb-lib (see its own README on the original intent: a plain-JS client library
-        // other JS projects could reuse, independent of this particular Vue app) in its own chunk,
-        // separate from the rest of the app — its own file, cacheable independently of app changes.
+        // @dialoguebranch/client-js is a `file:` dependency, resolved via a symlink into
+        // packages/client-js/ — Vite resolves symlinks by default, so the id Rollup sees is the
+        // real path, not one under node_modules/, and the default vendor-chunking heuristic
+        // (which keys off that string) doesn't pick it up on its own. Kept in its own chunk
+        // explicitly instead, same as when this code lived in src/dlb-lib/ — its own file,
+        // cacheable independently of app changes.
         manualChunks(id) {
-          if (id.includes('/src/dlb-lib/')) {
-            return 'dlb-lib';
+          if (id.includes('/packages/client-js/')) {
+            return 'client-js';
           }
         },
       },
@@ -47,8 +50,8 @@ export default defineConfig({
   },
   server: {
     // This app talks to the BFF only, same-origin, never to the Dialogue Branch Web Service or
-    // Keycloak directly (see src/auth.js and src/dlb-lib/DialogueBranchClient.js) — the dev
-    // server proxies every path the BFF owns so local development matches that in production.
+    // Keycloak directly (see src/auth.js and @dialoguebranch/client-js's DialogueBranchClient.js)
+    // — the dev server proxies every path the BFF owns so local development matches production.
     // Point VITE_BFF_TARGET at a different BFF instance (e.g. one deployed on Forge) to develop
     // against it instead of a local one.
     proxy: {

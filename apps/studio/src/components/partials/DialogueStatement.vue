@@ -8,7 +8,7 @@ import { statementToHtml } from '@/composables/sanitize-html.js';
 import DialogueActionSegment from '../widgets/DialogueActionSegment.vue';
 
 const props = defineProps({
-    // A dlb-lib Statement.
+    // A client-js Statement.
     statement: { type: Object, required: true },
 });
 

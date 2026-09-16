@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import DialogueStatement from './DialogueStatement.vue';
-import { Statement } from '@/dlb-lib/model/Statement';
-import { Segment } from '@/dlb-lib/model/Segment';
+import { Statement } from '@dialoguebranch/client-js/model/Statement';
+import { Segment } from '@dialoguebranch/client-js/model/Segment';
 
 describe('DialogueStatement', () => {
     it('plain text: a single sanitized block, paragraphs preserved', () => {

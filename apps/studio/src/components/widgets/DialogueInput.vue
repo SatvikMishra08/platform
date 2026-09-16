@@ -5,7 +5,7 @@
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
-    // A dlb-lib Segment with type === 'INPUT'.
+    // A client-js Segment with type === 'INPUT'.
     segment: { type: Object, required: true },
     disabled: { type: Boolean, default: false },
 });

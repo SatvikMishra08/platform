@@ -1,4 +1,4 @@
-import { DocumentFunctions } from './dlb-lib/util/DocumentFunctions.js';
+import { DocumentFunctions } from './authoring/DocumentFunctions.js';
 
 const LOGIN_PATH = '/oauth2/authorization/keycloak';
 const LOGOUT_PATH = '/logout';

@@ -1,5 +1,5 @@
 import { inject } from 'vue';
-import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
+import { DocumentFunctions } from '../authoring/DocumentFunctions.js';
 import { logEvent } from './debug-log.js';
 import { useClient, resetClient } from './client.js';
 import { redirectToLogout } from '../auth.js';

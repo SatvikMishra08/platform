@@ -3,7 +3,7 @@ import config from './config.js';
 import state from './state.js';
 import { fetchWhoAmI, redirectToLogin } from './auth.js';
 import { checkServicesHealth } from './composables/service-health.js';
-import { User } from './dlb-lib/model/User.js';
+import { User } from '@dialoguebranch/client-js/model/User';
 
 import { createApp, ref } from 'vue';
 import App from './App.vue';

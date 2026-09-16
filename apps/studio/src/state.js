@@ -1,5 +1,5 @@
-import { ConsoleLogger } from './dlb-lib/util/ConsoleLogger.js';
-import { LOG_LEVEL_NAMES } from './dlb-lib/util/AbstractLogger.js';
+import { ConsoleLogger } from '@dialoguebranch/client-js/util/ConsoleLogger';
+import { LOG_LEVEL_NAMES } from '@dialoguebranch/client-js/util/AbstractLogger';
 import { StudioClientState } from './StudioClientState.js';
 import config from './config.js';
 

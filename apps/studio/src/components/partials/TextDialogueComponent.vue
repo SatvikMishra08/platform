@@ -1,8 +1,8 @@
 <script setup>
 import { nextTick, ref, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { BasicReply } from '@/dlb-lib/model/BasicReply';
-import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
+import { BasicReply } from '@dialoguebranch/client-js/model/BasicReply';
+import { AutoForwardReply } from '@dialoguebranch/client-js/model/AutoForwardReply';
 import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
 import InteractiveReply from './InteractiveReply.vue';
 import DialogueStatement from './DialogueStatement.vue';

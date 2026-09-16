@@ -2,7 +2,7 @@
 import { ref, computed, inject, watch, watchEffect, nextTick } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { debugLog } from '../../composables/debug-log.js';
-import { cookiesVersion } from '../../dlb-lib/util/DocumentFunctions.js';
+import { cookiesVersion } from '../../authoring/DocumentFunctions.js';
 
 const state = inject('state');
 

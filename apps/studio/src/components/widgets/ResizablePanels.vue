@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { DocumentFunctions } from '../../dlb-lib/util/DocumentFunctions.js';
+import { DocumentFunctions } from '../../authoring/DocumentFunctions.js';
 
 const props = defineProps({
     'cookiePrefix': String,

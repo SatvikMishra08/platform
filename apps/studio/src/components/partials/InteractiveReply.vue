@@ -9,7 +9,7 @@ import DialogueInput from '../widgets/DialogueInput.vue';
 import DialogueActionSegment from '../widgets/DialogueActionSegment.vue';
 
 const props = defineProps({
-    // A dlb-lib BasicReply whose statement has at least one INPUT segment.
+    // A client-js BasicReply whose statement has at least one INPUT segment.
     reply: { type: Object, required: true },
     disabled: { type: Boolean, default: false },
     // Tailwind classes for the submit button, so the caller controls balloon vs text styling.
