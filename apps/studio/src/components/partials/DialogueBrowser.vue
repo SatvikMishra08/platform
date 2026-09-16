@@ -5,7 +5,7 @@ export default { inheritAttrs: false };
 <script setup>
 import { computed, inject, ref, watch, useAttrs } from 'vue';
 const attrs = useAttrs();
-import { useClient } from '../../composables/client.js';
+import { useClient, useAuthoringClient } from '../../composables/client.js';
 import { describeError } from '../../composables/error-message.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
 import { useLatestRequest } from '../../composables/latest-request.js';
@@ -34,6 +34,7 @@ const emit = defineEmits([
 ]);
 
 const client = useClient();
+const authoringClient = useAuthoringClient();
 
 const isDraftMode = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
 
@@ -122,7 +123,7 @@ function listDialogues() {
     // Mode, draft dialogues in Draft Mode — never a merge of both, so there's nothing to reconcile
     // by name across the two lists.
     const listPromise = isDraftMode.value
-        ? client.listDraftDialogues(projectSlug).catch(() => [])
+        ? authoringClient.listDraftDialogues(projectSlug).catch(() => [])
         : client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] }));
     listPromise
     .then((result) => {
@@ -197,7 +198,7 @@ function submitNewDialogue() {
     if (!name || creatingDialogue.value) return;
     creatingDialogue.value = true;
     dismissError();
-    client.createDraftDialogue(state.value.selectedProject?.slug, name)
+    authoringClient.createDraftDialogue(state.value.selectedProject?.slug, name)
     .then(() => {
         showNewDialogueInput.value = false;
         listDialogues();

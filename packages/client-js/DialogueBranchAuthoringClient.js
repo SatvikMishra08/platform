@@ -1,0 +1,526 @@
+/* @license
+ *
+ *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
+ *
+ *
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
+ *                                        as outlined below.
+ *
+ *                                            ----------
+ *
+ * Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+import { BaseClient } from "./BaseClient.js";
+
+/**
+ * Authoring client for a Dialogue Branch Web Service: project/dialogue/node/translation CRUD,
+ * publishing, and testing a project's *draft* (unpublished) content. Requires the `editor` or
+ * `admin` role for almost everything here — this is the Dialogue Branch Studio backend surface,
+ * not what a playback-only end-user-facing app needs (see {@link DialogueBranchClient} for that,
+ * the package's default export).
+ */
+export class DialogueBranchAuthoringClient extends BaseClient {
+
+    // ----------------------------------------------
+    // ---------- Server info / diagnostics ----------
+    // ----------------------------------------------
+
+    getTechnicalInfo() {
+        return this._fetch(this._baseUrl + "/info/technical", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    // -----------------------------------------------
+    // ---------- Project CRUD & publishing ----------
+    // -----------------------------------------------
+
+    listProjects() {
+        const url = this._baseUrl + "/project/list-projects";
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    createProject(slug, displayName, description, sourceLanguageCode, sourceLanguageName) {
+        const url = this._baseUrl + "/project/create-project";
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug, displayName, description, sourceLanguageCode, sourceLanguageName }),
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    getProject(projectSlug) {
+        const url = this._baseUrl + "/project/get-project?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Updates the project's *draft* display name/description — takes effect on the next publish.
+    updateProject(projectSlug, displayName, description) {
+        const url = this._baseUrl + "/project/update-project?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName, description }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Applies a whole "Save Draft" batch (display name/description, translation languages to
+    // remove/add/rename) in one atomic request — either all of it lands, or (if the server finds
+    // any problem with the batch) none of it does. Returns the updated project. `removeLanguageIds`
+    // is an array of ids; `addLanguages` is an array of { translationLanguageName,
+    // translationLanguageCode }; `updateLanguages` is an array of { id, translationLanguageName,
+    // translationLanguageCode }.
+    updateProjectDraft(projectSlug, { displayName, description, removeLanguageIds, addLanguages, updateLanguages }) {
+        const url = this._baseUrl + "/project/update-draft?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName, description, removeLanguageIds, addLanguages, updateLanguages }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    deleteProject(projectSlug) {
+        const url = this._baseUrl + "/project/delete-project?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Downloads a project's currently published content as a .zip archive. Deliberately bypasses
+    // _fetch/_handleResponse: those read the response body as text (to log it) and reconstruct a
+    // new Response from that string, which would corrupt binary content — this stays on the raw
+    // fetch Response and reads it as a blob instead.
+    async exportProject(projectSlug) {
+        const url = this._baseUrl + "/project/export-project?projectSlug=" + encodeURIComponent(projectSlug);
+
+        const response = await this._fetchImpl(url, {
+            method: "GET",
+            credentials: this._credentials,
+        });
+
+        if (response.status === 401) {
+            return this._unauthorizedResult();
+        }
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            return Promise.reject({
+                status: response.status,
+                statusText: response.statusText,
+                code: body?.code ?? null,
+                message: body?.message ?? null,
+                fieldErrors: body?.fieldErrors ?? [],
+                errors: body?.errors ?? null,
+            });
+        }
+
+        return response.blob();
+    }
+
+    // Imports a new project from a previously exported .zip archive (admin only). `file` is a
+    // browser File object (e.g. from a file input). No Content-Type header is set so the browser
+    // fills in the multipart boundary itself.
+    importProject(file) {
+        const url = this._baseUrl + "/project/import-project";
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this._fetch(url, {
+            method: "POST",
+            body: formData,
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Adds a *draft* translation language — takes effect on the next publish.
+    addTranslationLanguage(projectSlug, translationLanguageName, translationLanguageCode) {
+        const url = this._baseUrl + "/project/add-translation-language?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ translationLanguageName, translationLanguageCode }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Soft-deletes a *draft* translation language — reversible until the next publish, at which
+    // point the language (and any draft content still in it) is actually removed.
+    removeTranslationLanguage(projectSlug, translationLanguageId) {
+        const url = this._baseUrl + "/project/remove-translation-language?projectSlug=" + encodeURIComponent(projectSlug) + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Reverts a pending deletion previously made via removeTranslationLanguage above. No effect
+    // once the project has been published since the removal (the draft row is gone for good).
+    restoreTranslationLanguage(projectSlug, translationLanguageId) {
+        const url = this._baseUrl + "/project/restore-translation-language?projectSlug=" + encodeURIComponent(projectSlug) + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Lists the draft dialogues that currently have content in the given draft translation
+    // language — used to warn before removing it (see removeTranslationLanguage above).
+    findLanguageReferences(projectSlug, translationLanguageId) {
+        const url = this._baseUrl + "/project/find-language-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Validates all of the project's draft dialogues and, if valid, publishes them as a new,
+    // immutable project version. Returns { success, version, errors } — see PublishService.java.
+    publishProject(projectSlug) {
+        const url = this._baseUrl + "/publish/create-version?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Validates the project's current draft exactly as publishProject() would, but without
+    // actually publishing anything. Returns { valid, errors } — see PublishService.VerifyResult.
+    verifyProject(projectSlug) {
+        const url = this._baseUrl + "/publish/verify?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Returns the version number the next publishProject() call would create, without creating it.
+    getNextProjectVersion(projectSlug) {
+        const url = this._baseUrl + "/publish/next-version?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // -----------------------------------------------------------------
+    // ---------- Draft dialogue test-execution (ephemeral) ----------
+    // -----------------------------------------------------------------
+
+    listDraftDialogues(projectSlug) {
+        const url = this._baseUrl + "/authoring/list-dialogues?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    startDraftDialogue(projectSlug, dialogueName, language, startNodeId) {
+        let url = this._baseUrl + "/draft/start";
+
+        url += "?projectSlug=" + encodeURIComponent(projectSlug);
+        url += "&dialogueName=" + encodeURIComponent(dialogueName);
+        url += "&language=" + language;
+        url += "&timeZone=" + this._timeZone;
+        if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
+        url += this._delegateParam;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((json) => ({
+            draftSessionId: json.draftSessionId,
+            dialogueStep: this.createDialogueStepObject(json.dialogueMessage),
+        }));
+    }
+
+    // See DialogueBranchClient.progressDialogue: `inputValues` is forwarded as the JSON request
+    // body, which DraftExecutionController.progress stores before progressing the draft-test
+    // session.
+    progressDraftDialogue(draftSessionId, replyId, inputValues = null) {
+        let url = this._baseUrl + "/draft/progress";
+
+        url += "?draftSessionId=" + draftSessionId;
+        url += "&replyId=" + replyId;
+        url += "&timeZone=" + this._timeZone;
+        url += this._delegateParam;
+
+        const body = inputValues ? JSON.stringify(inputValues) : null;
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            ...(body != null ? { body } : {})
+        }, body)
+        .then((response) => this._handleResponse(response))
+        .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
+    }
+
+    cancelDraftDialogue(draftSessionId) {
+        const url = this._baseUrl + "/draft/cancel?draftSessionId=" + draftSessionId
+            + this._delegateParam;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    revertDraftVariables(draftSessionId) {
+        let url = this._baseUrl + "/draft/revert-variables?draftSessionId=" + draftSessionId;
+        url += "&timeZone=" + this._timeZone;
+        url += this._delegateParam;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    // -----------------------------------------------------------------
+    // ---------- Authoring (draft dialogue & node CRUD) ----------
+    // -----------------------------------------------------------------
+
+    createDraftDialogue(projectSlug, name) {
+        const url = this._baseUrl + "/authoring/create-dialogue?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Soft-delete: marks the dialogue as pending deletion (reversible via restoreDraftDialogue)
+    // until the project is next published.
+    deleteDraftDialogue(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/delete-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    restoreDraftDialogue(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/restore-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Scans the whole project for [[...]] reply links that reference the given dialogue (any
+    // node within it) — used both to preview a rename's blast radius and to warn about dangling
+    // links before a delete.
+    findDialogueReferences(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/find-dialogue-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    renameDraftDialogue(projectSlug, dialogueName, newName, updateReferences) {
+        const url = this._baseUrl + "/authoring/rename-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&newName=" + encodeURIComponent(newName)
+            + "&updateReferences=" + !!updateReferences;
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    listDraftNodes(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/list-nodes?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    createDraftNode(projectSlug, dialogueName, title, header, body) {
+        const url = this._baseUrl + "/authoring/create-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, header, body }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    updateDraftNode(projectSlug, dialogueName, nodeTitle, header, body) {
+        const url = this._baseUrl + "/authoring/update-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&nodeTitle=" + encodeURIComponent(nodeTitle);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ header, body }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    deleteDraftNode(projectSlug, dialogueName, nodeTitle) {
+        const url = this._baseUrl + "/authoring/delete-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&nodeTitle=" + encodeURIComponent(nodeTitle);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Scans the whole project for [[...]] reply links that reference the given node — used both
+    // to preview a rename's blast radius and to warn about dangling links before a delete.
+    findNodeReferences(projectSlug, dialogueName, nodeTitle) {
+        const url = this._baseUrl + "/authoring/find-node-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&nodeTitle=" + encodeURIComponent(nodeTitle);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    renameDraftNode(projectSlug, dialogueName, oldTitle, newTitle, updateReferences) {
+        const url = this._baseUrl + "/authoring/rename-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&oldTitle=" + encodeURIComponent(oldTitle)
+            + "&newTitle=" + encodeURIComponent(newTitle)
+            + "&updateReferences=" + !!updateReferences;
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    listTranslatableTerms(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/list-translatable-terms?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    getDraftTranslation(projectSlug, dialogueName, language) {
+        const url = this._baseUrl + "/authoring/get-translation?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&language=" + encodeURIComponent(language);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    updateDraftTranslation(projectSlug, dialogueName, language, content) {
+        const url = this._baseUrl + "/authoring/update-translation?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&language=" + encodeURIComponent(language);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Returns known Dialogue Branch users in the caller's realm whose username contains the given
+    // fragment, as [{ username, subject }] ordered by username. Used to resolve a username to the
+    // `subject` that delegated dialogue execution needs. Empty fragment lists all named users
+    // (first page only).
+    listUsers(usernameFragment) {
+        const url = this._baseUrl + "/users?username="
+            + encodeURIComponent(usernameFragment ?? "");
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((data) => Array.isArray(data) ? data : []);
+    }
+
+    // Returns the sorted list of variable names referenced anywhere in the given project's
+    // dialogues (read or written), regardless of whether a value is stored for them.
+    listProjectVariables(projectSlug) {
+        const url = this._baseUrl + "/variables/list-project?projectSlug="
+            + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((data) => Array.isArray(data) ? data : []);
+    }
+
+    // Returns the variables the project's configured External Variable Service reports as
+    // supported, proxied through live by the Web Service (never cached). Rejects if no External
+    // Variable Service is configured for this deployment, or it could not be reached — callers
+    // should treat that as "no EVS info available" rather than a user-facing error, since not
+    // every deployment configures one.
+    listSupportedVariables(projectSlug) {
+        const url = this._baseUrl + "/variables/list-supported?projectSlug="
+            + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((data) => Array.isArray(data) ? data : []);
+    }
+
+}

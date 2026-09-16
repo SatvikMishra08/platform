@@ -1,13 +1,13 @@
 <script setup>
 import { inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '../../composables/client.js';
+import { useAuthoringClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import CreateProjectWizardModal from '../partials/CreateProjectWizardModal.vue';
 import ImportProjectModal from '../partials/ImportProjectModal.vue';
 
 const state = inject('state');
-const client = useClient();
+const client = useAuthoringClient();
 const stateManagement = useStateManagement();
 
 const projects = ref([]);

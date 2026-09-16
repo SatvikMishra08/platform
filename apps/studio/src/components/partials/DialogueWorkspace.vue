@@ -1,6 +1,6 @@
 <script setup>
 import { inject, nextTick, ref, computed, useTemplateRef, watch, onMounted } from 'vue';
-import { useClient } from '@/composables/client.js';
+import { useClient, useAuthoringClient } from '@/composables/client.js';
 
 const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
@@ -108,7 +108,7 @@ function loadAvailableLanguages() {
 
     const slug = state.value.selectedProject?.slug;
     if (!slug) return;
-    client.getProject(slug)
+    authoringClient.getProject(slug)
         .then((project) => {
             // Tests run against draft content in Authoring Mode and published content in Live
             // Mode (see loadDialogue/loadDraftDialogue below) — the offered languages must match
@@ -243,7 +243,7 @@ function doCloseTab(id) {
 function cancelAndCloseTab(id) {
     const tab = tabs.value.find(t => t.id === id);
     if (tab?.isDraftTest && tab.draftSessionId) {
-        client.cancelDraftDialogue(tab.draftSessionId)
+        authoringClient.cancelDraftDialogue(tab.draftSessionId)
         .catch((error) => {
             showError(describeError(error));
         })
@@ -265,6 +265,7 @@ function cancelAndCloseTab(id) {
 // ---- Client / dialogue logic ----
 
 const client = useClient();
+const authoringClient = useAuthoringClient();
 
 const balloons = useTemplateRef('balloons');
 const textComponent = useTemplateRef('text-component');
@@ -363,7 +364,7 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Draft test started: $1', name);
-    client.startDraftDialogue(state.value.selectedProject?.slug, name, tab.language, startNodeId)
+    authoringClient.startDraftDialogue(state.value.selectedProject?.slug, name, tab.language, startNodeId)
     .then(({ draftSessionId, dialogueStep }) => {
         tab.draftSessionId = draftSessionId;
         tab.dialogueName = dialogueStep.dialogueName;
@@ -483,7 +484,7 @@ function onRevertVariablesClick() {
     if (!tab.isDraftTest || !tab.draftSessionId) return;
     dismissError();
     logEvent('dialogue', 'Draft test variables reverted: $1', tab.dialogueName);
-    client.revertDraftVariables(tab.draftSessionId)
+    authoringClient.revertDraftVariables(tab.draftSessionId)
     .then(() => {
         tab.draftSessionId = null;
         tab.dialogueEnded = true;
@@ -692,7 +693,7 @@ function onCancelClick() {
     if (tab.isDraftTest) {
         if (!tab.draftSessionId) return;
         logEvent('dialogue', 'Draft test cancelled: $1', tab.dialogueName);
-        client.cancelDraftDialogue(tab.draftSessionId)
+        authoringClient.cancelDraftDialogue(tab.draftSessionId)
         .then(() => {
             tab.draftSessionId = null;
             tab.dialogueCancelled = true;
@@ -748,7 +749,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
 
     if (tab.isDraftTest) {
         logEvent('dialogue', 'Draft test reply selected: $1', replyText);
-        client.progressDraftDialogue(tab.draftSessionId, reply.replyId, values)
+        authoringClient.progressDraftDialogue(tab.draftSessionId, reply.replyId, values)
         .then((nextStep) => {
             // The tab could have been cancelled while this request was in flight (Cancel is
             // disabled once awaitingReply is set, but this stays correct even if that ever

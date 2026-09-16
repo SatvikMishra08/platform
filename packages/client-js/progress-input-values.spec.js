@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { DialogueBranchClient } from './DialogueBranchClient.js';
+import { DialogueBranchAuthoringClient } from './DialogueBranchAuthoringClient.js';
 
 function jsonResponse(payload) {
     return new Response(JSON.stringify(payload), {
@@ -48,7 +49,7 @@ describe('progressDialogue / progressDraftDialogue with input values', () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(NEXT_STEP));
         vi.stubGlobal('fetch', fetchMock);
 
-        const client = new DialogueBranchClient({ baseUrl: '/api/v1' });
+        const client = new DialogueBranchAuthoringClient({ baseUrl: '/api/v1' });
         await client.progressDraftDialogue('sess-1', 3, { wantsCheese: true });
 
         expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ wantsCheese: true });

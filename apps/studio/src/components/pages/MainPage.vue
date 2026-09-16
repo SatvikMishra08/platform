@@ -1,7 +1,7 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref, computed, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient } from '../../composables/client.js';
+import { useClient, useAuthoringClient, setDelegateUser } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import ConfigureProjectModal from '../partials/ConfigureProjectModal.vue';
@@ -19,6 +19,7 @@ import { describeError } from '../../composables/error-message.js';
 const config = inject('config');
 const state = inject('state');
 const client = useClient();
+const authoringClient = useAuthoringClient();
 const stateManagement = useStateManagement();
 
 const panels = useTemplateRef('panels');
@@ -53,7 +54,7 @@ onMounted(() => {
     // starts out without one) and to seed the unpublished-metadata-changes indicator.
     if (state.value.selectedProject) {
         const slug = state.value.selectedProject.slug;
-        client.getProject(slug)
+        authoringClient.getProject(slug)
             .then((project) => {
                 state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug, latestVersion: project.latestVersion ?? null };
                 refreshProjectMetadataChanged(project);
@@ -175,7 +176,7 @@ function onProjectConfigured(updated) {
     state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug, displayName: updated.latestVersion?.displayName ?? updated.draftDisplayName ?? updated.slug };
     // The modal only reports the fields it itself changed — re-fetch to also pick up any
     // translation-language additions/removals when recomputing the unpublished-changes state.
-    client.getProject(updated.slug)
+    authoringClient.getProject(updated.slug)
         .then((project) => refreshProjectMetadataChanged(project))
         .catch(() => { /* leave the previous unpublished-changes state as-is */ });
     // Configure Project may have added/removed a translation language — refresh the "Test
@@ -236,7 +237,7 @@ function onExportProjectClick() {
     closeProjectMenu();
     const slug = state.value.selectedProject.slug;
     exporting.value = true;
-    client.exportProject(slug)
+    authoringClient.exportProject(slug)
         .then((blob) => {
             const url = URL.createObjectURL(blob);
             const anchor = document.createElement('a');
@@ -280,7 +281,7 @@ function onDelegateApply(payload) {
     showDelegateModal.value = false;
     const subject = payload?.subject || null;
     delegateConfirmAction.value = () => {
-        client.delegateUser = subject;
+        setDelegateUser(subject);
         activeDelegateUser.value = subject ? (payload.label || subject) : null;
         variableBrowser.value?.loadVariables();
     };
@@ -289,7 +290,7 @@ function onDelegateApply(payload) {
 function onDelegateClear() {
     showDelegateModal.value = false;
     delegateConfirmAction.value = () => {
-        client.delegateUser = null;
+        setDelegateUser(null);
         activeDelegateUser.value = null;
         variableBrowser.value?.loadVariables();
     };
