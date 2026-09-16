@@ -1,0 +1,27 @@
+{
+  "name": "@dialoguebranch/client-js",
+  "version": "0.1.8",
+  "description": "Playback-only JavaScript client for a Dialogue Branch Web Service (no authoring).",
+  "private": true,
+  "license": "MIT",
+  "author": "Fruit Tree Labs (https://www.fruittreelabs.com)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./DialogueBranchClient.js",
+    "./protocol": "./protocol.js",
+    "./ClientState": "./ClientState.js",
+    "./model/*": "./model/*.js",
+    "./util/*": "./util/*.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sync-version": "node -e \"import('../../global.json', {with:{type:'json'}}).then(g => { const fs = require('fs'); const p = JSON.parse(fs.readFileSync('./package.json')); p.version = g.default.version; fs.writeFileSync('./package.json', JSON.stringify(p, null, 2) + '\\n'); })\""
+  },
+  "devDependencies": {
+    "vitest": "^4.1.11"
+  }
+}
