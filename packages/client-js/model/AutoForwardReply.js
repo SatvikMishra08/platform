@@ -27,6 +27,7 @@
  */
 
 import { Reply } from './Reply.js';
+import { Action } from './Action.js';
 
 /**
  * An AutoForwardReply is a {@link Reply} option without a specific statement. An AutoForwardReply can be
@@ -67,6 +68,21 @@ export class AutoForwardReply extends Reply {
      */
     static emptyInstance() {
         return new AutoForwardReply(null, null, new Array());
+    }
+
+    /**
+     * Builds an AutoForwardReply from the JSON form the Web Service sends — a reply object with
+     * no `statement` field (see {@link BasicReply.fromJSON} for the case where one is present).
+     *
+     * @param {Object} json `{ replyId, endsDialogue, actions }`.
+     * @returns {AutoForwardReply} The parsed reply.
+     */
+    static fromJSON(json) {
+        return new AutoForwardReply(
+            json.replyId,
+            json.endsDialogue,
+            (json.actions ?? []).map((a) => Action.fromJSON(a)),
+        );
     }
 
 }

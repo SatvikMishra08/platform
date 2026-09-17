@@ -28,6 +28,7 @@
 
 import { BaseClient } from "./BaseClient.js";
 import { DialogueBranchError } from "./DialogueBranchError.js";
+import { DialogueStep } from "./model/DialogueStep.js";
 
 /**
  * Authoring client for a Dialogue Branch Web Service: project/dialogue/node/translation CRUD,
@@ -417,7 +418,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
         .then((response) => this._handleResponse(response))
         .then((json) => ({
             draftSessionId: json.draftSessionId,
-            dialogueStep: this.createDialogueStepObject(json.dialogueMessage),
+            dialogueStep: DialogueStep.fromJSON(json.dialogueMessage),
         }));
     }
 
@@ -447,7 +448,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
             ...(body != null ? { body } : {})
         }, body)
         .then((response) => this._handleResponse(response))
-        .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
+        .then((json) => json.value ? DialogueStep.fromJSON(json.value) : null);
     }
 
     /**

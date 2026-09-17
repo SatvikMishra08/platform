@@ -26,6 +26,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { Statement } from './Statement.js';
+import { BasicReply } from './BasicReply.js';
+import { AutoForwardReply } from './AutoForwardReply.js';
+
 export class DialogueStep {
 
     // ------------------------------------
@@ -44,6 +48,36 @@ export class DialogueStep {
 
     static emptyInstance() {
         return new DialogueStep(null,null,null,null,new Array(),null,null);
+    }
+
+    /**
+     * Builds a DialogueStep from the JSON form the Web Service sends — the shape returned by
+     * `/dialogue/start`, `/dialogue/progress`, `/dialogue/continue`, and their `/draft/*`
+     * equivalents.
+     *
+     * Each reply in `json.replies` is parsed as an {@link AutoForwardReply} if it has no
+     * `statement` field, or a {@link BasicReply} if it does — there's no `Reply.fromJSON`
+     * dispatcher for this, since `Reply` itself is never meant to be instantiated directly (see
+     * its own docs), and `BasicReply.js`/`AutoForwardReply.js` already import `Reply.js` for
+     * `extends Reply`; having `Reply.js` import them back would risk a circular-import
+     * initialization order bug for no real benefit.
+     *
+     * @param {Object} json `{ dialogue, node, speaker, loggedDialogueId,
+     * loggedInteractionIndex, statement, replies }`.
+     * @returns {DialogueStep} The parsed step.
+     */
+    static fromJSON(json) {
+        const replies = (json.replies ?? []).map((element) =>
+            element.statement == null ? AutoForwardReply.fromJSON(element) : BasicReply.fromJSON(element));
+        return new DialogueStep(
+            json.dialogue,
+            json.node,
+            json.speaker,
+            Statement.fromJSON(json.statement),
+            replies,
+            json.loggedDialogueId,
+            json.loggedInteractionIndex,
+        );
     }
 
     // ---------------------------------------

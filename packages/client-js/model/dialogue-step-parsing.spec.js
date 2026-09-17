@@ -4,7 +4,7 @@ import { Segment } from './Segment.js';
 import { Statement } from './Statement.js';
 import { BasicReply } from './BasicReply.js';
 import { AutoForwardReply } from './AutoForwardReply.js';
-import { DialogueBranchClient } from '../DialogueBranchClient.js';
+import { DialogueStep } from './DialogueStep.js';
 
 describe('Action.fromJSON', () => {
     it('carries type, value and parameters', () => {
@@ -93,10 +93,8 @@ describe('Statement segment helpers', () => {
     });
 });
 
-describe('DialogueBranchClient.createDialogueStepObject', () => {
-    const client = new DialogueBranchClient({ baseUrl: '/api/v1' });
-
-    const step = client.createDialogueStepObject({
+describe('DialogueStep.fromJSON', () => {
+    const step = DialogueStep.fromJSON({
         dialogue: 'inputs',
         node: 'Start',
         speaker: 'Martin McOwl',
