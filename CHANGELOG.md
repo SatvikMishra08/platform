@@ -147,6 +147,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Client JS: `DialogueBranchClient` and `DialogueBranchAuthoringClient` now reject
+  failed requests with a `DialogueBranchError` (a real `Error` subclass — `instanceof Error` and
+  `.stack` now work; `status`/`statusText`/`code`/`fieldErrors`/`errors` are still there as
+  properties) instead of a plain object
+  ([#234](https://github.com/dialoguebranch/platform/issues/234)). `error.message` keeps working
+  unchanged. Breaking for anyone destructuring the old plain-object shape, but nothing outside
+  this monorepo consumes it yet.
 - The bundled `default-test` seed project (and the mirrored `examples/project-test`) has been
   reworked into a guided tour that exercises every `.dlb` language feature
   ([#173](https://github.com/dialoguebranch/platform/issues/173)): new lesson dialogues for
