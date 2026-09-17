@@ -58,7 +58,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   ([#231](https://github.com/dialoguebranch/platform/issues/231)) — a playback-only consumer (e.g.
   a future public demonstrator front end) only ever needs the former. No framework dependency, so
   it can be used outside Studio. Published as plain ESM with no build step. Not yet published to
-  npm; Dialogue Branch Studio consumes it locally for now via a `file:` dependency.
+  npm; Dialogue Branch Studio consumes it locally for now via a `file:` dependency. Comes with a
+  `README.md` (install, a playback quickstart, the full list of `exports` subpaths) and full
+  JSDoc on both classes' public methods
+  ([#233](https://github.com/dialoguebranch/platform/issues/233)).
 - Web Service: an External Variable Service (EVS) may now report which variables it supports for
   a project, via an optional `GET /v{version}/variables/supported?projectSlug=<slug>` end-point on
   the EVS ([#185](https://github.com/dialoguebranch/platform/issues/185)). The Web Service exposes

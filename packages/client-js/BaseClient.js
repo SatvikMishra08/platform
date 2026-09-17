@@ -41,14 +41,38 @@ import { Statement } from "./model/Statement.js";
  */
 export class BaseClient {
 
-    // Transport is injected, not imported, so this client has no upward dependency on Studio
-    // (or on Vue/`document`) and can run in any JS runtime. `onRequest` is the generic seam for
-    // attaching auth — called on every request, not just state-changing ones, since a
-    // token-based consumer needs it on GETs too; Studio's own `onRequest` restricts its CSRF
-    // header to non-GET/HEAD itself, since that restriction is CSRF-specific, not generic.
-    // The default binds globalThis.fetch to globalThis — native fetch throws "Illegal
-    // invocation" when called as a plain property (`this._fetchImpl(...)`) instead of a method
-    // on window/globalThis, since it checks its receiver's internal type.
+    /**
+     * Transport is injected, not imported, so this client has no upward dependency on any
+     * particular app (or on Vue/`document`) and can run in any JS runtime.
+     *
+     * @param {Object} [options]
+     * @param {string} options.baseUrl Base URL of the Dialogue Branch Web Service, e.g.
+     * `"https://example.com/dlb-web-service/v1"`. Every request is `baseUrl + <endpoint path>`.
+     * @param {typeof fetch} [options.fetch] The `fetch` implementation to use. Defaults to
+     * `globalThis.fetch` (bound to `globalThis` — native `fetch` throws `"Illegal invocation"`
+     * when called as a plain property instead of a method on `window`/`globalThis`, since it
+     * checks its receiver's internal type). Pass your own for a non-browser runtime, testing, or
+     * to wrap it (retries, logging).
+     * @param {RequestCredentials} [options.credentials] The `fetch` `credentials` mode, applied
+     * to every request. Defaults to `'same-origin'`. A cookie-session consumer (like Dialogue
+     * Branch Studio, talking to its BFF) sets `'include'`.
+     * @param {(url: string, init: RequestInit) => void} [options.onRequest] Called with the
+     * request URL and the mutable `fetch` options object just before every request goes out —
+     * the seam for attaching auth (a CSRF header, an `Authorization: Bearer` token, …). Runs on
+     * every request regardless of method; a caller wanting to restrict something to
+     * state-changing methods (e.g. CSRF, which only matters there) does that check itself inside
+     * the callback.
+     * @param {(method: string, path: string, status: number, responseBody: string|null, requestBody: string|null) => void} [options.onApiCall]
+     * Called after every request completes (or fails to reach the server, with `status: 0`) —
+     * a hook for logging/debugging. Leaving it unset skips an internal body-read-and-reconstruct
+     * step entirely, so there's a small performance/correctness benefit (it would otherwise risk
+     * corrupting a binary response body) to only setting it when you actually want the logging.
+     * @param {() => void} [options.onUnauthorized] Called when a request gets a `401` response —
+     * typically used to redirect to a login page. If provided, the method call that triggered it
+     * returns a promise that never resolves (on the assumption a navigation is about to happen).
+     * If not provided, the method call instead rejects with a normal `{status: 401, ...}` error
+     * object, so a consumer with no hook still finds out the call failed rather than hanging.
+     */
     constructor({ baseUrl, fetch = globalThis.fetch.bind(globalThis), credentials = 'same-origin', onRequest, onApiCall, onUnauthorized } = {}) {
         this._baseUrl = baseUrl;
         this._fetchImpl = fetch;
@@ -68,6 +92,17 @@ export class BaseClient {
     // ---------- Helper functions related to Dialogue ----------
     // ----------------------------------------------------------
 
+    /**
+     * Parses the Web Service's raw dialogue-step JSON (the shape returned by `/dialogue/start`,
+     * `/dialogue/progress`, `/dialogue/continue`, and their `/draft/*` equivalents) into a
+     * {@link DialogueStep}. Shared by both {@link DialogueBranchClient}'s and
+     * {@link DialogueBranchAuthoringClient}'s dialogue-execution methods.
+     *
+     * @param {Object} data The parsed JSON body's dialogue-step object (`{ dialogue, node,
+     * speaker, loggedDialogueId, loggedInteractionIndex, statement, replies }`).
+     * @returns {DialogueStep} The parsed step, with its `statement` and `replies` (a mix of
+     * {@link BasicReply}/{@link AutoForwardReply}) fully resolved.
+     */
     createDialogueStepObject(data) {
         // Instantiate an empty DialogueStep
         var dialogueStep = DialogueStep.emptyInstance();
