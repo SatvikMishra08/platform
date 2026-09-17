@@ -8,9 +8,12 @@ const manifest = JSON.parse(readFileSync(new URL('package.json', import.meta.url
 let packedFiles;
 
 beforeAll(() => {
-    // npm test supplies its CLI path, avoiding platform-specific npm shell shims.
-    const output = execFileSync(process.execPath, [
-        process.env.npm_execpath, 'pack', '--dry-run', '--json', '--ignore-scripts',
+    // Resolved by name rather than via `process.env.npm_execpath` (only populated when this
+    // process was itself spawned by an npm script) so the spec also works run directly, e.g.
+    // `npx vitest run packaging.spec.js` or from an IDE test runner.
+    const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const output = execFileSync(npmCommand, [
+        'pack', '--dry-run', '--json', '--ignore-scripts',
     ], { cwd: packageRoot, encoding: 'utf8' });
     packedFiles = JSON.parse(output)[0].files.map(file => file.path);
 }, 30000);
@@ -19,7 +22,7 @@ describe('npm package contents', () => {
     it('ships the runtime modules, including the shared client base', () => {
         expect(packedFiles).toEqual(expect.arrayContaining([
             'BaseClient.js', 'ClientState.js', 'DialogueBranchClient.js',
-            'DialogueBranchAuthoringClient.js', 'protocol.js',
+            'DialogueBranchAuthoringClient.js', 'DialogueBranchError.js', 'protocol.js',
             'model/Action.js', 'model/AutoForwardReply.js', 'model/BasicReply.js',
             'model/DialogueStep.js', 'model/OngoingDialogue.js', 'model/Reply.js',
             'model/Segment.js', 'model/ServerInfo.js', 'model/Statement.js',
@@ -34,11 +37,12 @@ describe('npm package contents', () => {
         expect(packedFiles).not.toContain('package-lock.json');
     });
 
-    it('ships a package-local copy of the project licence', () => {
+    it('ships a package-local copy of the project licence, without the root LICENSE\'s ' +
+        'vendored-third-party-code footer (this package has no vendored code of its own)', () => {
         expect(packedFiles).toContain('LICENSE');
-        expect(readFileSync(new URL('LICENSE', import.meta.url), 'utf8')).toBe(
-            readFileSync(new URL('../../LICENSE', import.meta.url), 'utf8'),
-        );
+        const rootLicenseText = readFileSync(new URL('../../LICENSE', import.meta.url), 'utf8');
+        const [mitText] = rootLicenseText.split('\n\n---\n\n');
+        expect(readFileSync(new URL('LICENSE', import.meta.url), 'utf8')).toBe(mitText + '\n');
     });
 
     it('points consumers back to the monorepo and issue tracker', () => {

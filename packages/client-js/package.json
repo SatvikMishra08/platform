@@ -19,6 +19,7 @@
     "ClientState.js",
     "DialogueBranchClient.js",
     "DialogueBranchAuthoringClient.js",
+    "DialogueBranchError.js",
     "protocol.js",
     "model/",
     "util/",
