@@ -14,6 +14,7 @@
     "./authoring": "./DialogueBranchAuthoringClient.js",
     "./protocol": "./protocol.js",
     "./ClientState": "./ClientState.js",
+    "./DialogueBranchError": "./DialogueBranchError.js",
     "./model/*": "./model/*.js",
     "./util/*": "./util/*.js"
   },

@@ -27,6 +27,7 @@
  */
 
 import { BaseClient } from "./BaseClient.js";
+import { DialogueBranchError } from "./DialogueBranchError.js";
 
 /**
  * Authoring client for a Dialogue Branch Web Service: project/dialogue/node/translation CRUD,
@@ -203,14 +204,16 @@ export class DialogueBranchAuthoringClient extends BaseClient {
 
         if (!response.ok) {
             const body = await response.json().catch(() => null);
-            return Promise.reject({
-                status: response.status,
-                statusText: response.statusText,
-                code: body?.code ?? null,
-                message: body?.message ?? null,
-                fieldErrors: body?.fieldErrors ?? [],
-                errors: body?.errors ?? null,
-            });
+            return Promise.reject(new DialogueBranchError(
+                body?.message ?? `The server returned an error (${response.status}).`,
+                {
+                    status: response.status,
+                    statusText: response.statusText,
+                    code: body?.code ?? null,
+                    fieldErrors: body?.fieldErrors ?? [],
+                    errors: body?.errors ?? null,
+                },
+            ));
         }
 
         return response.blob();

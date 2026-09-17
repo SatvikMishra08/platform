@@ -32,6 +32,7 @@ import { DialogueStep } from "./model/DialogueStep.js";
 import { Action } from "./model/Action.js";
 import { Segment } from "./model/Segment.js";
 import { Statement } from "./model/Statement.js";
+import { DialogueBranchError } from "./DialogueBranchError.js";
 
 /**
  * Shared transport + response handling for {@link DialogueBranchClient} (playback) and
@@ -194,14 +195,10 @@ export class BaseClient {
             this._onUnauthorized();
             return new Promise(() => {});
         }
-        return Promise.reject({
+        return Promise.reject(new DialogueBranchError('Unauthorized', {
             status: 401,
             statusText: 'Unauthorized',
-            code: null,
-            message: 'Unauthorized',
-            fieldErrors: [],
-            errors: null,
-        });
+        }));
     }
 
     _handleResponse(response) {
@@ -214,14 +211,10 @@ export class BaseClient {
                 // A 2xx response can still have an empty/malformed body (e.g. truncated by a
                 // proxy) — without this catch, response.json()'s rejection has no `status` field
                 // and describeError() would mislabel it as a generic network error.
-                return response.json().catch(() => Promise.reject({
-                    status: response.status,
-                    statusText: response.statusText,
-                    code: null,
-                    message: 'The server returned an invalid response.',
-                    fieldErrors: [],
-                    errors: null,
-                }));
+                return response.json().catch(() => Promise.reject(new DialogueBranchError(
+                    'The server returned an invalid response.',
+                    { status: response.status, statusText: response.statusText },
+                )));
             } else {
                 return response.text();
             }
@@ -232,13 +225,15 @@ export class BaseClient {
         // actual backend message instead of just the HTTP status.
         return response.json()
             .catch(() => null)
-            .then((body) => Promise.reject({
-                status: response.status,
-                statusText: response.statusText,
-                code: body?.code ?? null,
-                message: body?.message ?? null,
-                fieldErrors: body?.fieldErrors ?? [],
-                errors: body?.errors ?? null,
-            }));
+            .then((body) => Promise.reject(new DialogueBranchError(
+                body?.message ?? `The server returned an error (${response.status}).`,
+                {
+                    status: response.status,
+                    statusText: response.statusText,
+                    code: body?.code ?? null,
+                    fieldErrors: body?.fieldErrors ?? [],
+                    errors: body?.errors ?? null,
+                },
+            )));
     }
 }
