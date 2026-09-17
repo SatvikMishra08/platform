@@ -5,6 +5,25 @@
   "private": true,
   "license": "MIT",
   "author": "Fruit Tree Labs (https://www.fruittreelabs.com)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dialoguebranch/platform.git",
+    "directory": "packages/client-js"
+  },
+  "homepage": "https://github.com/dialoguebranch/platform/tree/main/packages/client-js#readme",
+  "bugs": {
+    "url": "https://github.com/dialoguebranch/platform/issues"
+  },
+  "files": [
+    "BaseClient.js",
+    "ClientState.js",
+    "DialogueBranchClient.js",
+    "DialogueBranchAuthoringClient.js",
+    "protocol.js",
+    "model/",
+    "util/",
+    "!**/*.spec.js"
+  ],
   "type": "module",
   "engines": {
     "node": ">=20"
