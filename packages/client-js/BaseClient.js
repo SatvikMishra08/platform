@@ -26,12 +26,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { AutoForwardReply } from "./model/AutoForwardReply.js";
-import { BasicReply } from "./model/BasicReply.js";
-import { DialogueStep } from "./model/DialogueStep.js";
-import { Action } from "./model/Action.js";
-import { Segment } from "./model/Segment.js";
-import { Statement } from "./model/Statement.js";
 import { DialogueBranchError } from "./DialogueBranchError.js";
 
 /**
@@ -87,69 +81,6 @@ export class BaseClient {
 
     get _delegateParam() {
         return this.delegateUser ? '&delegateUser=' + encodeURIComponent(this.delegateUser) : '';
-    }
-
-    // ----------------------------------------------------------
-    // ---------- Helper functions related to Dialogue ----------
-    // ----------------------------------------------------------
-
-    /**
-     * Parses the Web Service's raw dialogue-step JSON (the shape returned by `/dialogue/start`,
-     * `/dialogue/progress`, `/dialogue/continue`, and their `/draft/*` equivalents) into a
-     * {@link DialogueStep}. Shared by both {@link DialogueBranchClient}'s and
-     * {@link DialogueBranchAuthoringClient}'s dialogue-execution methods.
-     *
-     * @param {Object} data The parsed JSON body's dialogue-step object (`{ dialogue, node,
-     * speaker, loggedDialogueId, loggedInteractionIndex, statement, replies }`).
-     * @returns {DialogueStep} The parsed step, with its `statement` and `replies` (a mix of
-     * {@link BasicReply}/{@link AutoForwardReply}) fully resolved.
-     */
-    createDialogueStepObject(data) {
-        // Instantiate an empty DialogueStep
-        var dialogueStep = DialogueStep.emptyInstance();
-
-        // Add the simple parameters
-        dialogueStep.dialogueName = data.dialogue;
-        dialogueStep.node = data.node;
-        dialogueStep.speaker = data.speaker;
-        dialogueStep.loggedDialogueId = data.loggedDialogueId;
-        dialogueStep.loggedInteractionIndex = data.loggedInteractionIndex;
-
-        // Add the statement (consisting of a list of segments)
-        var statement = Statement.emptyInstance();
-        data.statement.segments.forEach(
-            (element) => {
-                statement.addSegment(Segment.fromJSON(element));
-            }
-        );
-        dialogueStep.statement = statement;
-
-        // Add the replies
-        data.replies.forEach(
-            (element) => {
-                var reply = null;
-                if(element.statement == null) {
-                    reply = AutoForwardReply.emptyInstance();
-                } else {
-                    reply = BasicReply.emptyInstance();
-                }
-                reply.replyId = element.replyId;
-                reply.endsDialogue = element.endsDialogue;
-
-                if(reply instanceof BasicReply) {
-                    statement = Statement.emptyInstance();
-                    element.statement.segments.forEach(
-                        (segmentElement) => {
-                            statement.addSegment(Segment.fromJSON(segmentElement));
-                        }
-                    );
-                    reply.statement = statement;
-                }
-                reply.actions = (element.actions ?? []).map((a) => Action.fromJSON(a));
-                dialogueStep.addReply(reply);
-            }
-        );
-        return dialogueStep;
     }
 
     // Attaches credentials to every call via the injected `_credentials` mode, and gives

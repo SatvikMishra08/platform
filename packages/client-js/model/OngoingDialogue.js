@@ -26,27 +26,58 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/**
+ * Describes a user's most recent interrupted (not finished or cancelled) dialogue session, as
+ * returned by the Web Service's `/dialogue/get-ongoing` endpoint (`OngoingDialoguePayload`).
+ */
 export class OngoingDialogue {
 
     // ------------------------------------
     // ---------- Constructor(s) ----------
     // ------------------------------------
 
-    constructor(name, secondsSinceLastEngagement) {
-        this._name = name;
+    /**
+     * @param {string} dialogueName The name of the ongoing dialogue.
+     * @param {string} loggedDialogueId The ongoing session's id — pass to
+     * {@link DialogueBranchClient#continueDialogue}'s underlying `/dialogue/continue` call (via
+     * `dialogueName`) or {@link DialogueBranchClient#cancelDialogue} to resume or end it.
+     * @param {number} secondsSinceLastEngagement How many seconds ago the user last interacted
+     * with this dialogue.
+     */
+    constructor(dialogueName, loggedDialogueId, secondsSinceLastEngagement) {
+        this._dialogueName = dialogueName;
+        this._loggedDialogueId = loggedDialogueId;
         this._secondsSinceLastEngagement = secondsSinceLastEngagement;
+    }
+
+    /**
+     * Builds an OngoingDialogue from the JSON form the Web Service sends.
+     *
+     * @param {Object} json `{ dialogueName, loggedDialogueId, secondsSinceLastEngagement }`.
+     * @returns {OngoingDialogue} The parsed ongoing-dialogue info.
+     */
+    static fromJSON(json) {
+        return new OngoingDialogue(json.dialogueName, json.loggedDialogueId, json.secondsSinceLastEngagement);
     }
 
     // ---------------------------------------
     // ---------- Getters & Setters ----------
     // ---------------------------------------
 
-    set name(name) {
-        this._name = name;
+    set dialogueName(dialogueName) {
+        this._dialogueName = dialogueName;
     }
 
-    get name() {
-        return this._name;
+    get dialogueName() {
+        return this._dialogueName;
+    }
+
+    set loggedDialogueId(loggedDialogueId) {
+        this._loggedDialogueId = loggedDialogueId;
+    }
+
+    get loggedDialogueId() {
+        return this._loggedDialogueId;
     }
 
     set secondsSinceLastEngagement(secondsSinceLastEngagement) {

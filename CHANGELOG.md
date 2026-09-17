@@ -147,6 +147,18 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Client JS: every wire-protocol model type now has a `fromJSON` parser (previously
+  only `Action`/`Segment` did, despite `protocol.js` claiming otherwise)
+  ([#232](https://github.com/dialoguebranch/platform/issues/232)). `getServerInfo()` and
+  `getOngoingDialogue()` now return `ServerInfo`/`OngoingDialogue` instances instead of raw
+  parsed JSON, matching every other method that already returned a typed model. Also fixed two
+  model classes that had drifted from the Web Service's actual response shape: `OngoingDialogue`
+  was missing `loggedDialogueId` entirely (and had `name` where the wire uses `dialogueName`) —
+  harmless before since nothing constructed one, but would have silently dropped the field
+  Studio's own "resume dialogue" prompt needs; `Variable` didn't formally model `updatedSource`
+  even though it's part of the real response and Studio already displays it. Breaking for anyone
+  relying on the old plain-object return shape or the pre-fix `OngoingDialogue` fields, but
+  nothing outside this monorepo consumes the package yet.
 - **Breaking:** Client JS: `DialogueBranchClient` and `DialogueBranchAuthoringClient` now reject
   failed requests with a `DialogueBranchError` (a real `Error` subclass — `instanceof Error` and
   `.stack` now work; `status`/`statusText`/`code`/`fieldErrors`/`errors` are still there as

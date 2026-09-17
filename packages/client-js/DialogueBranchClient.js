@@ -28,6 +28,9 @@
 
 import { BaseClient } from "./BaseClient.js";
 import { Variable } from "./model/Variable.js";
+import { DialogueStep } from "./model/DialogueStep.js";
+import { ServerInfo } from "./model/ServerInfo.js";
+import { OngoingDialogue } from "./model/OngoingDialogue.js";
 
 /**
  * Playback-only client for a Dialogue Branch Web Service: running dialogues (published content)
@@ -53,15 +56,15 @@ export class DialogueBranchClient extends BaseClient {
      * Returns general information about the connected Web Service — its version, and other
      * details not specific to any project or dialogue. Doesn't require any particular role.
      *
-     * @returns {Promise<Object>} `{ serviceName, serviceVersion, ... }` — see the Web Service's
-     * own `GET /info/all` documentation for the full shape.
+     * @returns {Promise<ServerInfo>} The server info.
      */
     getServerInfo() {
         return this._fetch(this._baseUrl + "/info/all", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
         })
-        .then((response) => this._handleResponse(response));
+        .then((response) => this._handleResponse(response))
+        .then((json) => ServerInfo.fromJSON(json));
     }
 
     /**
@@ -110,7 +113,7 @@ export class DialogueBranchClient extends BaseClient {
             headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
-        .then((json) => this.createDialogueStepObject(json));
+        .then((json) => DialogueStep.fromJSON(json));
     }
 
     /**
@@ -141,7 +144,7 @@ export class DialogueBranchClient extends BaseClient {
             ...(body != null ? { body } : {})
         }, body)
         .then((response) => this._handleResponse(response))
-        .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
+        .then((json) => json.value ? DialogueStep.fromJSON(json.value) : null);
     }
 
     /**
@@ -171,7 +174,7 @@ export class DialogueBranchClient extends BaseClient {
             var dialogueData = data?.value;
             if (dialogueData && 'dialogue' in dialogueData) {
                 // Create a DialogueStep object from the received data
-                return this.createDialogueStepObject(dialogueData);
+                return DialogueStep.fromJSON(dialogueData);
             }
             return null;
         });
@@ -218,25 +221,7 @@ export class DialogueBranchClient extends BaseClient {
             headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
-        .then((data) => {
-            if(data == null || data.length == 0) {
-                return new Array();
-            } else {
-                var variables = new Array();
-
-                data.forEach(entry => {
-                    var variable = new Variable();
-                    variable.name = entry.name;
-                    variable.value = entry.value;
-                    variable.updatedTime = entry.updatedTime;
-                    variable.updatedTimeZone = entry.updatedTimeZone;
-                    variable.updatedSource = entry.updatedSource;
-                    variables.push(variable);
-                });
-
-                return variables;
-            }
-        })
+        .then((data) => (data ?? []).map((entry) => Variable.fromJSON(entry)))
     }
 
     /**
@@ -246,8 +231,8 @@ export class DialogueBranchClient extends BaseClient {
      * continue it?".
      *
      * @param {string} projectSlug The project's slug.
-     * @returns {Promise<Object|null>} Information about the ongoing session (which dialogue, how
-     * long since the last interaction, …), or `null` if there is none.
+     * @returns {Promise<OngoingDialogue|null>} Information about the ongoing session, or `null`
+     * if there is none.
      */
     getOngoingDialogue(projectSlug) {
         let url = this._baseUrl + "/dialogue/get-ongoing";
@@ -260,7 +245,7 @@ export class DialogueBranchClient extends BaseClient {
             headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
-        .then((data) => data?.value ?? null);
+        .then((data) => data?.value ? OngoingDialogue.fromJSON(data.value) : null);
     }
 
     /**

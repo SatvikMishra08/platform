@@ -221,8 +221,13 @@ function checkOngoingDialogue() {
         if (ongoing) {
             const alreadyOpenTab = props.openTabs.find(t =>
                 t.loggedDialogueId === ongoing.loggedDialogueId);
+            // ongoing is an OngoingDialogue instance now (see #232) — spreading it would copy its
+            // underscore-prefixed internal fields, not the public dialogueName/loggedDialogueId/
+            // secondsSinceLastEngagement getters the template below actually reads.
             ongoingConfirm.value = {
-                ...ongoing,
+                dialogueName: ongoing.dialogueName,
+                loggedDialogueId: ongoing.loggedDialogueId,
+                secondsSinceLastEngagement: ongoing.secondsSinceLastEngagement,
                 alreadyOpenTabId: alreadyOpenTab?.id ?? null,
             };
         } else {

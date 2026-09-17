@@ -27,6 +27,8 @@
  */
 
 import { Reply } from './Reply.js';
+import { Action } from './Action.js';
+import { Statement } from './Statement.js';
 
 /**
  * A BasicReply is an implementation of the Reply class and represents the most basic of reply
@@ -64,6 +66,23 @@ export class BasicReply extends Reply {
      */
     static emptyInstance() {
         return new BasicReply(null, null, new Array(), null);
+    }
+
+    /**
+     * Builds a BasicReply from the JSON form the Web Service sends — a reply object with a
+     * `statement` field present (see {@link AutoForwardReply.fromJSON} for the case where it's
+     * absent).
+     *
+     * @param {Object} json `{ replyId, endsDialogue, actions, statement }`.
+     * @returns {BasicReply} The parsed reply.
+     */
+    static fromJSON(json) {
+        return new BasicReply(
+            json.replyId,
+            json.endsDialogue,
+            (json.actions ?? []).map((a) => Action.fromJSON(a)),
+            Statement.fromJSON(json.statement),
+        );
     }
 
     // ---------------------------------------

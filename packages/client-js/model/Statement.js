@@ -26,6 +26,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { Segment } from './Segment.js';
+
 export class Statement {
 
     // ------------------------------------
@@ -38,6 +40,17 @@ export class Statement {
 
     static emptyInstance() {
         return new Statement(new Array());
+    }
+
+    /**
+     * Builds a Statement from the JSON form the Web Service sends.
+     *
+     * @param {Object} json `{ segments }` — each a raw segment object, as
+     * {@link Segment.fromJSON} expects.
+     * @returns {Statement} The parsed statement.
+     */
+    static fromJSON(json) {
+        return new Statement((json?.segments ?? []).map((s) => Segment.fromJSON(s)));
     }
 
     // ---------------------------------------

@@ -38,11 +38,22 @@ export class Variable {
     // ---------- Constructor(s) ----------
     // ------------------------------------
 
-    constructor(name, value, updatedTime, updatedTimeZone) {
+    constructor(name, value, updatedTime, updatedTimeZone, updatedSource) {
         this._name = name;
         this._value = value;
         this._updatedTime = updatedTime;
         this._updatedTimeZone = updatedTimeZone;
+        this._updatedSource = updatedSource;
+    }
+
+    /**
+     * Builds a Variable from the JSON form the Web Service sends.
+     *
+     * @param {Object} json `{ name, value, updatedTime, updatedTimeZone, updatedSource }`.
+     * @returns {Variable} The parsed variable.
+     */
+    static fromJSON(json) {
+        return new Variable(json.name, json.value, json.updatedTime, json.updatedTimeZone, json.updatedSource);
     }
 
     // ---------------------------------------
@@ -111,6 +122,23 @@ export class Variable {
      */
     set updatedTimeZone(updatedTimeZone) {
         this._updatedTimeZone = updatedTimeZone;
+    }
+
+    /**
+     * Returns what last updated this variable's value (e.g. "DLB_SCRIPT", "INPUT_REPLY",
+     * "WEB_SERVICE", "EXTERNAL", or "UNKNOWN").
+     * @returns what last updated this variable's value.
+     */
+    get updatedSource() {
+        return this._updatedSource;
+    }
+
+    /**
+     * Sets what last updated this variable's value.
+     * @param {String} updatedSource what last updated this variable's value.
+     */
+    set updatedSource(updatedSource) {
+        this._updatedSource = updatedSource;
     }
 
     // ---------------------------------------

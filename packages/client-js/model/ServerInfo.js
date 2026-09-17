@@ -26,17 +26,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/**
+ * General information about a connected Web Service, as returned by its `/info/all` endpoint
+ * (`ServiceInfoPayload`).
+ */
 export class ServerInfo {
 
     // ---------------------------------------
     // ---------- Constructor(s) -------------
     // ---------------------------------------
 
+    /**
+     * @param {string} serviceVersion The software version of the service.
+     * @param {string} protocolVersion The latest API protocol version the service supports.
+     * @param {string} build A string describing when this service was built.
+     * @param {string} upTime How long the service has been running (e.g. `"2d 4h 15m"`).
+     */
     constructor(serviceVersion, protocolVersion, build, upTime) {
         this._serviceVersion = serviceVersion;
         this._protocolVersion = protocolVersion;
         this._build = build;
         this._upTime = upTime;
+    }
+
+    /**
+     * Builds a ServerInfo from the JSON form the Web Service sends.
+     *
+     * @param {Object} json `{ serviceVersion, protocolVersion, build, upTime }`.
+     * @returns {ServerInfo} The parsed server info.
+     */
+    static fromJSON(json) {
+        return new ServerInfo(json.serviceVersion, json.protocolVersion, json.build, json.upTime);
     }
 
     // ---------------------------------------

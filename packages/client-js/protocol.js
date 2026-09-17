@@ -29,6 +29,10 @@
 // Side-effect-free re-export of the wire-protocol model types and their fromJSON parsers, with
 // no transport code — so a wrapping backend and its own front end can share these types without
 // pulling in DialogueBranchClient/fetch at all. See #88's Scope section for the rationale.
+//
+// One exception: Reply has no fromJSON of its own — it's never meant to be instantiated
+// directly (see its own docs); use BasicReply.fromJSON/AutoForwardReply.fromJSON, or
+// DialogueStep.fromJSON, which already dispatches between them for you when parsing a full step.
 
 export { Action } from './model/Action.js';
 export { AutoForwardReply } from './model/AutoForwardReply.js';

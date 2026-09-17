@@ -44,6 +44,16 @@ export class User {
         this._roles = roles;
     }
 
+    /**
+     * Builds a User from the JSON form the BFF's `/whoami` endpoint sends.
+     *
+     * @param {Object} json `{ username, roles }`.
+     * @returns {User} The parsed user.
+     */
+    static fromJSON(json) {
+        return new User(json.username, json.roles ?? []);
+    }
+
     // ---------------------------------------
     // ---------- Getters & Setters ----------
     // ---------------------------------------
