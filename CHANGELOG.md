@@ -330,6 +330,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Client JS: limit the npm package to runtime modules, include its MIT licence,
+  and add repository and issue-tracker metadata
+  ([#236](https://github.com/dialoguebranch/platform/issues/236)).
 - Web Service: role extraction now honours `dlb.auth.keycloak.client-id`
   ([#104](https://github.com/dialoguebranch/platform/issues/104)). A deployment that set a
   non-default client id received tokens whose roles live under `resource_access.<that-id>.roles`,
